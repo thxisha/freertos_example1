@@ -21,6 +21,8 @@ static const char *TAG = "example";
 */
 #define BLINK_GPIO CONFIG_BLINK_GPIO
 
+#define LED_2       2
+
 static uint8_t s_led_state = 0;
 
 #ifdef CONFIG_BLINK_LED_STRIP
@@ -31,6 +33,7 @@ TaskHandle_t led_task_handle = NULL;
 
 static void blink_led(void *task_param)
 {
+    ESP_LOGI(TAG, "LED1 blinked!");
     while(1) {
         /* If the addressable LED is enabled */
         if (s_led_state) {
@@ -45,6 +48,24 @@ static void blink_led(void *task_param)
             led_strip_clear(led_strip);
             s_led_state = 1;
             vTaskDelay(1000 / portTICK_PERIOD_MS); // block for 1 sec
+        }
+    }
+}
+
+static void blink_led2(void *task_param)
+{
+    while(1) {
+        ESP_LOGI(TAG, "LED2 blinked!");
+        /* If the addressable LED is enabled */
+        if (s_led_state) {
+            gpio_set_level(GPIO_NUM_2, 1);
+            s_led_state = 0;
+            vTaskDelay(2000 / portTICK_PERIOD_MS); // block for 2 sec
+        } else {
+            /* Set all LED off to clear all pixels */
+            gpio_set_level(GPIO_NUM_2, 0);
+            s_led_state = 1;
+            vTaskDelay(2000 / portTICK_PERIOD_MS); // block for 2 sec
         }
     }
 }
@@ -67,21 +88,44 @@ static void configure_led(void)
     /* Set all LED off to clear all pixels */
     led_strip_clear(led_strip);
 }
+
+static void configure_led2(void) {
+    ESP_LOGI(TAG, "Example configured to blink addressable LED2!");
+
+    gpio_config_t led2_config = {
+        .pin_bit_mask = (1ULL << LED_2),
+        .mode = GPIO_MODE_OUTPUT,
+        .pull_up_en = GPIO_PULLUP_DISABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_DISABLE,
+    };
+    gpio_config(&led2_config);
+}
 #endif
 
 void app_main(void)
 {
-
     /* Configure the peripheral according to the LED type */
     configure_led();
+    configure_led2();
     s_led_state = 0;
-    xTaskCreatePinnedToCore (
+    xTaskCreate(
         blink_led, // Task function
         "LED Task", // Task name 
         4096,       // Stack size
         NULL,       // Task parameter
         1,          // Task priority
-        &led_task_handle, // Task handle
-        0           // Core # to run task on 
+        &led_task_handle // Task handle
     );
+
+    xTaskCreate(
+        blink_led2,
+        "LED2 Task",
+        4096,
+        NULL,
+        2,
+        NULL
+    );
+
+    gpio_set_level(GPIO_NUM_2, 1);
 }

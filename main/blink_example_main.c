@@ -90,6 +90,7 @@ static void configure_led(void)
 }
 
 static void configure_led2(void) {
+    /*Physical LED configuration*/
     ESP_LOGI(TAG, "Example configured to blink addressable LED2!");
 
     gpio_config_t led2_config = {
@@ -126,6 +127,4 @@ void app_main(void)
         2,
         NULL
     );
-
-    gpio_set_level(GPIO_NUM_2, 1);
 }
